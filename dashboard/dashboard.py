@@ -129,50 +129,91 @@ if df is not None:
         ax.set_title('Loyalitas Berdasarkan Masa Operasional')
         st.pyplot(fig)
 # --- HALAMAN 3: ANALISIS NARATIF KELAS ---
-    elif page == "Analisis Naratif Kelas":
-        st.title("📝 Perbandingan Karakteristik Antar Kelas")
+elif page == "Analisis Naratif Kelas":
+    st.title("📝 Perbandingan Karakteristik Antar Kelas")
+    
+    # Menghitung statistik per kelas (Metrik disesuaikan dengan dataset_bersih.csv)
+    metrics = ['net_profit_margin', 'digital_adoption_score', 'repeat_order_rate', 'kepuasan_pelanggan']
+    class_stats = df.groupby('class')[metrics].mean()
+
+    # Normalisasi data untuk radar chart
+    df_norm = (class_stats - class_stats.min()) / (class_stats.max() - class_stats.min())
+
+    def create_radar_chart(target_class, color):
+        categories = ['Profit Margin', 'Digital Adoption', 'Repeat Order', 'Kepuasan']
+        values = df_norm.loc[target_class].values.tolist()
+        values += values[:1]
+        categories += categories[:1]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatterpolar(
+            r=values,
+            theta=categories,
+            fill='toself',
+            name=f'DNA {target_class}',
+            line_color=color
+        ))
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+            showlegend=False,
+            title=f"Radar DNA Performa: {target_class}",
+            height=400
+        )
+        return fig
+
+    st.subheader("Analisis Profil Bisnis")
+    tab1, tab2, tab3, tab4 = st.tabs(["Elite", "Growth", "Struggling", "Critical"])
+    class_colors = {"Elite": "#FFD700", "Growth": "#00FF00", "Struggling": "#FFA500", "Critical": "#FF0000"}
+
+    with tab1:
+        col_text, col_plot = st.columns([1, 1])
+        with col_text:
+            st.markdown(f"""
+        ### 🏆 Kelas Elite (The Market Leader)
+        Ini adalah kelompok UMKM terbaik dengan rata-rata Profit Margin sebesar **{class_stats.loc['Elite', 'net_profit_margin']:.2f}%**. 
+        Mereka memiliki efisiensi operasional yang matang dan tingkat loyalitas pelanggan tertinggi.
         
-        metrics = ['net_profit_margin', 'digital_adoption_score', 'repeat_order_rate', 'kepuasan_pelanggan']
-        class_stats = df.groupby('class')[metrics].mean()
+        **Tipe Investor**: Cocok untuk investor yang mencari dividen stabil dan risiko rendah (Blue Chip UMKM).
+        """)
+        with col_plot:
+            st.plotly_chart(create_radar_chart("Elite", class_colors["Elite"]), use_container_width=True)
 
-        # Normalisasi untuk Radar Chart
-        df_norm = (class_stats - class_stats.min()) / (class_stats.max() - class_stats.min())
+    with tab2:
+        col_text, col_plot = st.columns([1, 1])
+        with col_text:
+            st.markdown(f"""
+        ### 📈 Kelas Growth (The Rising Star)
+        Kelompok ini menunjukkan potensi ekspansi yang besar. Meskipun margin profit berada di angka **{class_stats.loc['Growth', 'net_profit_margin']:.2f}%**, 
+        skor adopsi digital mereka menunjukkan kesiapan untuk skala yang lebih besar.
 
-        def create_radar_chart(target_class, color):
-            categories = ['Margin', 'Digital', 'Repeat Order', 'Kepuasan']
-            values = df_norm.loc[target_class].values.tolist()
-            values += values[:1]
-            categories += categories[:1]
+        **Tipe Investor**: Sangat cocok untuk Venture Capital atau Angel Investor yang mencari pertumbuhan nilai aset (Capital Gain).
+        """)
+        with col_plot:
+            st.plotly_chart(create_radar_chart("Growth", class_colors["Growth"]), use_container_width=True)
 
-            fig = go.Figure()
-            fig.add_trace(go.Scatterpolar(
-                r=values, theta=categories, fill='toself',
-                name=target_class, line_color=color
-            ))
-            fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-                showlegend=False, title=f"DNA {target_class}"
-            )
-            return fig
+    with tab3:
+        col_text, col_plot = st.columns([1, 1])
+        with col_text:
+            st.markdown(f"""
+        ### ⚠️ Kelas Struggling (Needs Optimization)
+        UMKM di kelas ini memiliki margin profit yang tipis (**{class_stats.loc['Struggling', 'net_profit_margin']:.2f}%**). 
+        Mereka membutuhkan intervensi pada strategi retensi pelanggan dan optimalisasi biaya operasional.
 
-        st.subheader("Analisis Profil Bisnis")
-        tabs = st.tabs(["Elite", "Growth", "Struggling", "Critical"])
-        class_info = [
-            ("Elite", tabs[0], "#FFD700", "🏆"),
-            ("Growth", tabs[1], "#00FF00", "📈"),
-            ("Struggling", tabs[2], "#FFA500", "⚠️"),
-            ("Critical", tabs[3], "#FF0000", "🚨")
-        ]
+        **Tipe Investor**: Cocok untuk Investor Turnaround yang juga berperan sebagai mentor untuk memperbaiki struktur biaya bisnis.
+        """)
+        with col_plot:
+            st.plotly_chart(create_radar_chart("Struggling", class_colors["Struggling"]), use_container_width=True)
 
-        for name, tab, color, icon in class_info:
-            with tab:
-                col_text, col_plot = st.columns(2)
-                with col_text:
-                    st.markdown(f"### {icon} Kelas {name}")
-                    st.write(f"**Margin**: {class_stats.loc[name, 'net_profit_margin']:.2f}%")
-                    st.write(f"**Digital**: {class_stats.loc[name, 'digital_adoption_score']:.2f}/10")
-                    st.write(f"**Loyalty**: {class_stats.loc[name, 'repeat_order_rate']:.2f}%")
-                with col_plot:
-                    st.plotly_chart(create_radar_chart(name, color), use_container_width=True)
-else:
+    with tab4:
+        col_text, col_plot = st.columns([1, 1])
+        with col_text:
+            st.markdown(f"""
+        ### 🚨 Kelas Critical (The High Risk)
+        Ini adalah zona risiko tinggi dengan margin profit sangat tertekan (**{class_stats.loc['Critical', 'net_profit_margin']:.2f}%**). 
+        Loyalitas pelanggan berada pada titik rendah, menandakan perlunya pivot atau perubahan model bisnis.
+
+        **Tipe Investor**: Cocok untuk Investor Spekulatif yang melihat aset strategis tersembunyi di balik kegagalan operasional (Distressed Asset).
+        """)
+        with col_plot:
+            st.plotly_chart(create_radar_chart("Critical", class_colors["Critical"]), use_container_width=True)
     st.warning("Silakan periksa kembali ketersediaan dataset di repository GitHub Anda.")
