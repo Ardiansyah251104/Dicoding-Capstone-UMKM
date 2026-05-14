@@ -128,74 +128,51 @@ if df is not None:
         )
         ax.set_title('Loyalitas Berdasarkan Masa Operasional')
         st.pyplot(fig)
+# --- HALAMAN 3: ANALISIS NARATIF KELAS ---
+    elif page == "Analisis Naratif Kelas":
+        st.title("📝 Perbandingan Karakteristik Antar Kelas")
+        
+        metrics = ['net_profit_margin', 'digital_adoption_score', 'repeat_order_rate', 'kepuasan_pelanggan']
+        class_stats = df.groupby('class')[metrics].mean()
 
-  # --- HALAMAN 3: ANALISIS NARATIF KELAS (DIPERBAIKI) ---
-elif page == "Analisis Naratif Kelas":
-    st.title("📝 Perbandingan Karakteristik Antar Kelas")
-    
-    # Metrik yang digunakan sesuai dataset_bersih.csv [cite: 71, 121]
-    metrics = ['net_profit_margin', 'digital_adoption_score', 'repeat_order_rate', 'kepuasan_pelanggan']
-    class_stats = df.groupby('class')[metrics].mean()
+        # Normalisasi untuk Radar Chart
+        df_norm = (class_stats - class_stats.min()) / (class_stats.max() - class_stats.min())
 
-    # Normalisasi data untuk Radar Chart
-    df_norm = (class_stats - class_stats.min()) / (class_stats.max() - class_stats.min())
+        def create_radar_chart(target_class, color):
+            categories = ['Margin', 'Digital', 'Repeat Order', 'Kepuasan']
+            values = df_norm.loc[target_class].values.tolist()
+            values += values[:1]
+            categories += categories[:1]
 
-    def create_radar_chart(target_class, color):
-        categories = ['Profit Margin', 'Digital Adoption', 'Repeat Order', 'Kepuasan']
-        values = df_norm.loc[target_class].values.tolist()
-        values += values[:1]
-        categories += categories[:1]
+            fig = go.Figure()
+            fig.add_trace(go.Scatterpolar(
+                r=values, theta=categories, fill='toself',
+                name=target_class, line_color=color
+            ))
+            fig.update_layout(
+                polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                showlegend=False, title=f"DNA {target_class}"
+            )
+            return fig
 
-        fig = go.Figure()
-        fig.add_trace(go.Scatterpolar(
-            r=values, theta=categories, fill='toself',
-            name=f'DNA {target_class}', line_color=color
-        ))
-        fig.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-            showlegend=False, title=f"Radar DNA Performa: {target_class}", height=400
-        )
-        return fig
+        st.subheader("Analisis Profil Bisnis")
+        tabs = st.tabs(["Elite", "Growth", "Struggling", "Critical"])
+        class_info = [
+            ("Elite", tabs[0], "#FFD700", "🏆"),
+            ("Growth", tabs[1], "#00FF00", "📈"),
+            ("Struggling", tabs[2], "#FFA500", "⚠️"),
+            ("Critical", tabs[3], "#FF0000", "🚨")
+        ]
 
-    st.subheader("Analisis Profil Bisnis")
-    tab1, tab2, tab3, tab4 = st.tabs(["Elite", "Growth", "Struggling", "Critical"])
-    class_colors = {"Elite": "#FFD700", "Growth": "#00FF00", "Struggling": "#FFA500", "Critical": "#FF0000"}
-
-    with tab1:
-        col_text, col_plot = st.columns([1, 1])
-        with col_text:
-            st.markdown(f"### 🏆 Kelas Elite (The Market Leader)")
-            st.write(f"Rata-rata Profit Margin: **{class_stats.loc['Elite', 'net_profit_margin']:.2f}%**.")
-            st.write("Tipe Investor: Cocok untuk investor yang mencari dividen stabil dan risiko rendah.")
-        with col_plot:
-            st.plotly_chart(create_radar_chart("Elite", class_colors["Elite"]), use_container_width=True)
-
-    with tab2:
-        col_text, col_plot = st.columns([1, 1])
-        with col_text:
-            st.markdown(f"### 📈 Kelas Growth (The Rising Star)")
-            st.write(f"Rata-rata Profit Margin: **{class_stats.loc['Growth', 'net_profit_margin']:.2f}%**.")
-            st.write("Tipe Investor: Cocok untuk Venture Capital yang mencari pertumbuhan nilai aset.")
-        with col_plot:
-            st.plotly_chart(create_radar_chart("Growth", class_colors["Growth"]), use_container_width=True)
-
-    with tab3:
-        col_text, col_plot = st.columns([1, 1])
-        with col_text:
-            st.markdown(f"### ⚠️ Kelas Struggling (Needs Optimization)")
-            st.write(f"Rata-rata Profit Margin: **{class_stats.loc['Struggling', 'net_profit_margin']:.2f}%**.")
-            st.write("Tipe Investor: Cocok untuk investor yang dapat memberikan bimbingan operasional.")
-        with col_plot:
-            st.plotly_chart(create_radar_chart("Struggling", class_colors["Struggling"]), use_container_width=True)
-
-    with tab4:
-        col_text, col_plot = st.columns([1, 1])
-        with col_text:
-            st.markdown(f"### 🚨 Kelas Critical (The High Risk)")
-            st.write(f"Rata-rata Profit Margin: **{class_stats.loc['Critical', 'net_profit_margin']:.2f}%**.")
-            st.write("Tipe Investor: Cocok untuk investor yang ingin melakukan perombakan model bisnis total.")
-        with col_plot:
-            # Perbaikan Syntax Error baris ini (menghapus kelebihan ')') [cite: 56, 106, 156]
-            st.plotly_chart(create_radar_chart("Critical", class_colors["Critical"]), use_container_width=True)
+        for name, tab, color, icon in class_info:
+            with tab:
+                col_text, col_plot = st.columns(2)
+                with col_text:
+                    st.markdown(f"### {icon} Kelas {name}")
+                    st.write(f"**Margin**: {class_stats.loc[name, 'net_profit_margin']:.2f}%")
+                    st.write(f"**Digital**: {class_stats.loc[name, 'digital_adoption_score']:.2f}/10")
+                    st.write(f"**Loyalty**: {class_stats.loc[name, 'repeat_order_rate']:.2f}%")
+                with col_plot:
+                    st.plotly_chart(create_radar_chart(name, color), use_container_width=True)
 else:
     st.warning("Silakan periksa kembali ketersediaan dataset di repository GitHub Anda.")
